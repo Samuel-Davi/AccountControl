@@ -15,7 +15,7 @@ function executaQuery(query, res){
     else
       res.json(results);
     connection.end();
-    console.log('sucesso');
+    console.log("ok");
   });
 }
 

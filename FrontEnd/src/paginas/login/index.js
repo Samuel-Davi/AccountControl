@@ -20,7 +20,6 @@ export const Login = () =>{
   const campoVazio = () => {toast.warn("Preencha os campos")}
   const notExist = () => {toast.error("Usuário não existe")}
   const wrong = () => {toast.error("Usuário ou Senha incorretos")}
-  
 
   const verificarLogin =  async () =>{
     if(nome === "" || password === ""){
@@ -35,9 +34,10 @@ export const Login = () =>{
       .then((res) =>{
         for (let i = 0; i < res.data.length; i++) {
           const user = res.data[i];
-          if(user.username === nome){
+          console.log(user)
+          if(user.nome === nome){
             count++
-            if(user.password === password){
+            if(user.senha === password){
               welcome(nome)
               break;
             }else{

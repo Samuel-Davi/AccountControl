@@ -13,26 +13,25 @@ export const Home = () =>{
 
     //user
     const [Username, setUsername] = useState("")
-    const [dinheiro, setDinheiro] = useState(0);
-    const [pix, setPix] = useState(0);
+    const [userId, setUserId] = useState(0);
+    const [renda, setRenda] = useState(0);
 
     //style
     const [valueClassButton, setValueClassButton] = useState("buttonView")
     const [classButtonView, setClassButtonView] = useState("divButtonView");
     const [classUl, setClassUl] = useState("none");
+    const [isBlurred, setIsBlurred] = useState(true);
 
     //extrato
     const [extrato, setExtrato] = useState([])
 
     //inserirExtrato
     const [valor, setValor] = useState(0);
+    const [categoria, setCategoria] = useState("");
+    const [saldoApos, setSaldoApos] = useState(0.0);
     const [desc, setDesc] = useState("");
     const [formaPag, setFormaPag] = useState("");
     const [sinal, setSinal] = useState("");
-
-    //update
-    const [novoDinheiro, setNovoDinheiro] = useState(0);
-    const [novoPix, setNovoPix] = useState(0);
 
     //dom
     var containerAdd;
@@ -43,24 +42,23 @@ export const Home = () =>{
         await api.get('/users')
         .then((response) =>{
             for(let i=0; i<response.data.length; i++){
-                if(response.data[i].username === nomeUser){
-                    setUsername(response.data[i].username);
-                    setDinheiro(response.data[i].dinheiro)
-                    setPix(response.data[i].pix)
+                if(response.data[i].nome === nomeUser){
+                    setUserId(response.data[i].id);
+                    setUsername(response.data[i].nome);
                 }
             }
         })
     }
 
     const getExtrato = () =>{
-        fetch("http://localhost:8080/users/extrato")
+        fetch(`http://localhost:8080/users/${userId}/extrato`)
         .then(response => response.json())
         .then(data => {
             console.log(data);
             setExtrato(data);
         })
         .catch(err => {
-            console.log(err.message)
+            console.log("erro: " + err.message)
         });
     }
 
@@ -80,49 +78,68 @@ export const Home = () =>{
         getExtrato();
     }
 
-    const addExtrato = (sinal) =>{
-        setSinal(sinal)
-        console.log("add")
+    const addExtrato = (sinalMudado) =>{
+        setSinal(sinalMudado)
+        console.log(sinal)
         containerAdd.showModal()
     }
 
-    const confirmaExtrato = () =>{
-        /*if(valor === null || desc === ""){
+    async function confirmaExtrato(){
+        if(valor === null || desc === ""){
             alert("Preencha os Campos")
         }else{
-            console.log(valor);
-            console.log(desc);
-            console.log(formaPag);
-            api.post("users/inserirExtrato", {
-                username: nomeUser,
-                valor: valor,
-                desc: desc,
-                optionValue: sinal,
-                formaPag: formaPag,
-            }) */
-            console.log(dinheiro.valueOf() + valor.valueOf())
-        //}   
+            console.log("sinal: " + sinal)
+            if(sinal === "positivo"){
+                api.put(`users/${userId}/inserirExtrato`,{
+                    valor: valor,
+                    descricao: desc,
+                    tipo_transacao: formaPag,
+                    categoria: categoria,
+                    saldo_apos_transacao: parseFloat(renda) + parseFloat(valor)
+                })
+                api.post(`users/${userId}/`, {
+                    renda: parseFloat(renda) + parseFloat(valor)
+                })
+                setRenda(parseFloat(renda) + parseFloat(valor))
+            }else{
+                api.put(`users/${userId}/inserirExtrato`,{
+                    valor: valor,
+                    descricao: desc,
+                    tipo_transacao: formaPag,
+                    categoria: categoria,
+                    saldo_apos_transacao: parseFloat(renda) - parseFloat(valor)
+                })
+                api.post(`users/${userId}/`, {
+                    renda: parseFloat(renda) - parseFloat(valor)
+                })
+                setRenda(parseFloat(renda) - parseFloat(valor))
+                setValor(parseFloat(valor)*-1)
+            }
+            
+        }   
     }
 
-    const updateUserData = () =>{
-        console.log(novoDinheiro + " " + novoPix)
-            api.post("users/updateData", {
-                username: nomeUser,
-                dinheiro: novoDinheiro,
-                pix: novoPix
+
+    async function toggleBlur(){
+        if(isBlurred){
+            await api.get(`/users/${userId}`)
+            .then((response) =>{
+                setRenda(response.data[0].renda);
             })
-    }
+
+        }
+        setIsBlurred(prevState => !prevState);
+    };
 
     return(
         <div className="AllPage">
             <header>
             <div className="headerLeft">
-                <p>Username: {Username}</p>
+                <p>Usuário: {Username}</p>
             </div>
                 <div className="headerRight">
-                    <p>Dinheiro: {dinheiro} R$</p>
-                    <p>Pix: {pix} R$</p>
-                    <p>Renda Total: {dinheiro + pix} R$</p>
+                    <img alt="olho" id="imgOlho" onClick={toggleBlur}/>
+                    <p style={{filter: isBlurred ? 'blur(5px)' : 'none'}}> renda: {renda} R$</p>
                 </div>
             </header>
             <main>
@@ -136,20 +153,32 @@ export const Home = () =>{
                             <input type="text" placeholder="Digite aqui" value={desc} onChange={(e)=>{setDesc(e.target.value)}}/>
                             <label>Forma de Pagamento:</label>
                             <select onChange={(e)=>{setFormaPag(e.target.value)}} name="work_days" className="id_work_days" multiple>
-                                <option value="pix">Pix</option>
-                                <option value="dinheiro">Dinheiro</option>
+                                <option value="debito">Débito</option>
+                                <option value="credito">Crédito</option>
                             </select>
+                            <label for="categoria">Categoria:</label>
+                                <select id="categoria" name="categoria" onChange={(e) => {setCategoria(e.target.value)}}>
+                                    <option value="" disabled selected>Selecione uma categoria</option>
+                                    <option value="alimentacao">Alimentação</option>
+                                    <option value="transporte">Transporte</option>
+                                    <option value="moradia">Moradia</option>
+                                    <option value="saude">Saúde</option>
+                                    <option value="educacao">Educação</option>
+                                    <option value="lazer">Lazer</option>
+                                    <option value="outras">Outras</option>
+                                </select>
+
                             <div><button onClick={() => {confirmaExtrato()}}>Confirmar</button></div>
                         </form>
                     </dialog>
                 <div>
-                    <button onClick={() => {addExtrato("positivo")}} class="buttonAdd">+</button>
+                    <button onClick={() => {addExtrato("positivo")}} className="buttonAdd">+</button>
                 </div>
                 <div class="blockExtrato">
                     <div className="title">
                         <div><p>Valor:</p></div>
                         <div><p>Descrição:</p></div>
-                        <div><p>Forma de Pag:</p></div>
+                        <div><p>Tipo:</p></div>
                     </div>
                     <div className={classButtonView}>
                         <button className={valueClassButton} onClick={() =>{changeClass()}}>View</button>
@@ -158,9 +187,9 @@ export const Home = () =>{
                         {extrato.map((extrato) => {
                             return(
                                 <div className="linha" key={extrato.id}>
-                                    <div><p className={extrato.optionValue}>{extrato.valor}</p></div>
-                                    <div><p>{extrato.descr}</p></div>
-                                    <div><p>{extrato.formaPag}</p></div>
+                                    <div><p className={extrato.optionValue}>{extrato.valor} R$</p></div>
+                                    <div><p>{extrato.descricao}</p></div>
+                                    <div><p>{extrato.tipo_transacao}</p></div>
                                 </div>
                             )
                         })

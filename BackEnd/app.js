@@ -2,7 +2,7 @@ const express = require('express')
 const executaQuery = require('./dbconnect')
 const cors = require('cors');
 const app = express()
-const port = 8080
+const port = 8081                   
 
 app.use(cors());
 
@@ -15,39 +15,42 @@ app.get('/', (req, res) => {
 })
 
 app.get('/users', (req,res) => {
-  let query = "select * from accounts.User";
+  let query = "select * from accounts.users";
   executaQuery(query, res);
 })
 
-app.get('/users/extrato', (req,res) => {
-  let query = 'select * from accounts.Extrato'
+app.get('/users/:id', (req, res) => {
+  const {id} = req.params;
+  let query = "select * from accounts.users where id = " + id;
   executaQuery(query, res);
 })
 
-app.post('/users/inserirExtrato', (req,res) => {
-  console.log(req.body)
-  let name = req.body.username;
-  let valor = req.body.valor;
-  let optionValue = req.body.optionValue;
-  let desc = req.body.desc;
-  let formaPag = req.body.formaPag;
-  let query = `insert into accounts.Extrato(username, valor, optionValue, descr, formaPag, User_name)
-  values('${name}', '${valor}', '${optionValue}', '${desc}', '${formaPag}', '${name}')`;
+const buscarExtrato = (id, res) => {
+  let query = 'select * from accounts.extrato_conta where id_user = ' + id;
+  executaQuery(query, res);
+}
+
+app.get('/users/:id/extrato', async (req,res) => {
+  const {id} = req.params;
+  const extrato = await buscarExtrato(id, res);
+})
+
+app.put('/users/:id/inserirExtrato', (req,res) => {
+  const body = req.body;
+  console.log(body)
+  let query = `insert into accounts.extrato_conta values('null', '${req.params}', '${body.tipo_transacao}', '${body.valor}', '${body.descricao}', '${body.saldo_apos_transacao}',
+  '${body.categoria}', default, default)`;
   
   executaQuery(query, res);
 })
 
-app.post('/users/updateData', (req, res) => {
-  console.log(req.body)
-  let username = req.body.username;
-  let dinheiro = req.body.dinheiro;
-  let pix = req.body.pix;
-
-  let query = `update User set dinheiro = '${dinheiro}', pix = '${pix}',
-  rendaTotal = '${dinheiro}' + '${pix}' where username = '${username}'`
-
+app.post('/users/:id/', (req, res) => {
+  const body = req.body;
+  console.log(body)
+  let query = `update accounts.users set renda = ${body.renda} where id = ${req.params.id}`;
   executaQuery(query, res);
 })
+
 
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`)
