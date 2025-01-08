@@ -11,7 +11,7 @@ app.use(express.urlencoded({extended:false}));
 app.use(express.json())
 
 app.get('/', (req, res) => {
-  res.send('<h1>Samuel Davi</h1>')
+  res.send('<h1>Samuel Davi API</h1>')
 })
 
 app.get('/users', (req,res) => {
@@ -35,16 +35,16 @@ app.get('/users/:id/extrato', async (req,res) => {
   const extrato = await buscarExtrato(id, res);
 })
 
-app.put('/users/:id/inserirExtrato', (req,res) => {
+app.post('/users/:id/extrato', (req,res) => {
   const body = req.body;
-  console.log(body)
-  let query = `insert into accounts.extrato_conta values('null', '${req.params}', '${body.tipo_transacao}', '${body.valor}', '${body.descricao}', '${body.saldo_apos_transacao}',
-  '${body.categoria}', default, default)`;
+  let defaul = 'default'
+  console.log(body);
+  let query = `insert into accounts.extrato_conta values(null, ${req.params.id}, '${body.tipo_transacao}', ${body.valor}, '${body.descricao}', ${body.saldo_apos_transacao},'${body.categoria}', default, default)`;
   
   executaQuery(query, res);
 })
 
-app.post('/users/:id/', (req, res) => {
+app.put('/users/:id/', (req, res) => {
   const body = req.body;
   console.log(body)
   let query = `update accounts.users set renda = ${body.renda} where id = ${req.params.id}`;

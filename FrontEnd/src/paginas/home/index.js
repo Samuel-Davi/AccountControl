@@ -3,6 +3,8 @@ import React, {useEffect, useState} from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './home.css';
 import api from '../../services/api';
+import olhoAberto from '../../assets/olho/1.png';
+import olhoFechado from '../../assets/olho/2.png';
 
 export const Home = () =>{
 
@@ -14,13 +16,14 @@ export const Home = () =>{
     //user
     const [Username, setUsername] = useState("")
     const [userId, setUserId] = useState(0);
-    const [renda, setRenda] = useState(0);
+    const [renda, setRenda] = useState(0.00);
 
     //style
     const [valueClassButton, setValueClassButton] = useState("buttonView")
     const [classButtonView, setClassButtonView] = useState("divButtonView");
     const [classUl, setClassUl] = useState("none");
     const [isBlurred, setIsBlurred] = useState(true);
+    const [olhoAtual, setOlhoAtual] = useState(olhoFechado);
 
     //extrato
     const [extrato, setExtrato] = useState([])
@@ -50,16 +53,12 @@ export const Home = () =>{
         })
     }
 
-    const getExtrato = () =>{
-        fetch(`http://localhost:8080/users/${userId}/extrato`)
-        .then(response => response.json())
-        .then(data => {
-            console.log(data);
-            setExtrato(data);
-        })
-        .catch(err => {
-            console.log("erro: " + err.message)
-        });
+    async function getExtrato(){
+        await api.get(`/users/${userId}/extrato`)
+       .then((response) => {
+            console.log(response.data)
+            setExtrato(response.data)
+       })
     }
 
     useEffect(() =>{
@@ -85,31 +84,31 @@ export const Home = () =>{
     }
 
     async function confirmaExtrato(){
-        if(valor === null || desc === ""){
+        if(valor === null || desc === "" || categoria === "" || formaPag === ""){
             alert("Preencha os Campos")
         }else{
             console.log("sinal: " + sinal)
             if(sinal === "positivo"){
-                api.put(`users/${userId}/inserirExtrato`,{
+                api.post(`users/${userId}/extrato`,{
                     valor: valor,
                     descricao: desc,
                     tipo_transacao: formaPag,
                     categoria: categoria,
                     saldo_apos_transacao: parseFloat(renda) + parseFloat(valor)
                 })
-                api.post(`users/${userId}/`, {
+                api.put(`users/${userId}/`, {
                     renda: parseFloat(renda) + parseFloat(valor)
                 })
                 setRenda(parseFloat(renda) + parseFloat(valor))
             }else{
-                api.put(`users/${userId}/inserirExtrato`,{
+                api.post(`users/${userId}/extrato`,{
                     valor: valor,
                     descricao: desc,
                     tipo_transacao: formaPag,
                     categoria: categoria,
                     saldo_apos_transacao: parseFloat(renda) - parseFloat(valor)
                 })
-                api.post(`users/${userId}/`, {
+                api.put(`users/${userId}/`, {
                     renda: parseFloat(renda) - parseFloat(valor)
                 })
                 setRenda(parseFloat(renda) - parseFloat(valor))
@@ -121,6 +120,11 @@ export const Home = () =>{
 
 
     async function toggleBlur(){
+        if(olhoAtual == olhoAberto){
+            setOlhoAtual(olhoFechado)
+        }else{
+            setOlhoAtual(olhoAberto)
+        }
         if(isBlurred){
             await api.get(`/users/${userId}`)
             .then((response) =>{
@@ -138,7 +142,7 @@ export const Home = () =>{
                 <p>Usuário: {Username}</p>
             </div>
                 <div className="headerRight">
-                    <img alt="olho" id="imgOlho" onClick={toggleBlur}/>
+                    <img src={olhoAtual} id="imgOlho" onClick={toggleBlur}/>
                     <p style={{filter: isBlurred ? 'blur(5px)' : 'none'}}> renda: {renda} R$</p>
                 </div>
             </header>
@@ -187,7 +191,7 @@ export const Home = () =>{
                         {extrato.map((extrato) => {
                             return(
                                 <div className="linha" key={extrato.id}>
-                                    <div><p className={extrato.optionValue}>{extrato.valor} R$</p></div>
+                                    <div><p>{extrato.valor} R$</p></div>
                                     <div><p>{extrato.descricao}</p></div>
                                     <div><p>{extrato.tipo_transacao}</p></div>
                                 </div>

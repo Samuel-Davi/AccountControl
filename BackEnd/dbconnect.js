@@ -10,9 +10,10 @@ function executaQuery(query, res){
 	});
 
   connection.query(query,function (error, results, fields){
-    if(error)
+    if(error){
       res.json(error);
-    else
+      console.log(error);
+    }else
       res.json(results);
     connection.end();
     console.log("ok");
